@@ -13,3 +13,18 @@ class C2NMap(BaseModel):
             if not 0 <= value <= 9:
                 raise ValueError(f"値は0から9の間である必要があります: {value}")
         return v
+
+    def __encode(self, text: str) -> str:
+        if len(text) != 1:
+            raise ValueError(f"文字は1文字である必要があります: {text}")
+
+        if text == " ":
+            return " "
+
+        if text not in self.c2n:
+            raise ValueError(f"文字はマッピングに含まれていません: {text}")
+
+        return str(self.c2n[text])
+
+    def __call__(self, text: str) -> str:
+        return "".join(map(self.__encode, text))
