@@ -1,4 +1,5 @@
 from datetime import datetime
+from pathlib import Path
 
 import pandas
 from tqdm import tqdm
@@ -41,5 +42,8 @@ def evaluate(model: DecipherBase, dataset: list[Data]) -> None:
     )
 
     pandas.DataFrame(outputs).to_csv(
-        f"{datetime.now().strftime('%Y%m%d%H%M%S')}.csv", index=False
+        Path(__file__).parent.parent
+        / "outputs"
+        / f"{datetime.now().strftime('%Y%m%d%H%M%S')}.csv",
+        index=False,
     )
