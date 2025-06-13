@@ -15,16 +15,14 @@ class Output(Data):
     length: int
 
 
-def evaluate(model: DecipherBase, dataset: list[Data]) -> None:
+def evaluate(model: DecipherBase, dataset: list[Data], save: bool = True, remote: bool = False) -> float:
     outputs = []
-    for data in tqdm(dataset):
+    for data in tqdm(dataset, desc="Evaluating", leave=save, disable=remote):
         input_sequence = model.c2n_map(data.text)
 
         output_text = model.perform(input_sequence)
 
-        correct_count = sum(
-            [char1 == char2 for char1, char2 in zip(data.text, output_text)]
-        )
+        correct_count = sum([char1 == char2 for char1, char2 in zip(data.text, output_text)])
 
         outputs.append(
             Output(
@@ -37,13 +35,13 @@ def evaluate(model: DecipherBase, dataset: list[Data]) -> None:
             )
         )
 
-    print(
-        f"Accuracy: {sum([output.correct_count for output in outputs]) / sum([output.length for output in outputs])}"
-    )
+    accuracy = sum([output.correct_count for output in outputs]) / sum([output.length for output in outputs])
 
-    pandas.DataFrame([output.model_dump() for output in outputs]).to_csv(
-        Path(__file__).parent.parent
-        / "outputs"
-        / f"{datetime.now().strftime('%Y%m%d%H%M%S')}.csv",
-        index=False,
-    )
+    if save:
+        print(f"Accuracy: {accuracy}")
+        pandas.DataFrame([output.model_dump() for output in outputs]).to_csv(
+            Path(__file__).parent.parent / "outputs" / f"{datetime.now().strftime('%Y%m%d%H%M%S')}.csv",
+            index=False,
+        )
+
+    return accuracy

@@ -1,18 +1,9 @@
-from pydantic import BaseModel, Field, field_validator
-
-
-class C2NMap(BaseModel):
-    c2n: dict[str, int] = Field(description="文字から数字へのマッピング")
-
-    @field_validator("c2n")
-    @classmethod
-    def validate_c2n(cls, v: dict[str, int]) -> dict[str, int]:
-        for key, value in v.items():
-            if len(key) != 1:
-                raise ValueError(f"キーは1文字である必要があります: {key}")
-            if not 0 <= value <= 9:
-                raise ValueError(f"値は0から9の間である必要があります: {value}")
-        return v
+class C2NMap:
+    def __init__(self, c2n: dict[str, int]):
+        self.c2n = c2n
+        self.n2c = {i: [] for i in range(10)}
+        for key, value in self.c2n.items():
+            self.n2c[value].append(key)
 
     def __encode(self, text: str) -> str:
         if len(text) != 1:
