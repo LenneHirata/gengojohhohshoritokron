@@ -1,6 +1,5 @@
 import itertools
 import random
-from multiprocessing import Pool, cpu_count
 
 from tqdm import tqdm
 
@@ -39,22 +38,18 @@ class GeneticDecipher(SearchDecipher):
 
         return self.__sex(c2n_map, C2NMap(c2n={char: random.randint(0, 9) for char in self.chars}))
 
-    def evaluate_individual(self, c2n_map: C2NMap, train_data: list[Data], remote: bool = True) -> tuple[C2NMap, float]:
+    def evaluate_individual(self, c2n_map: C2NMap, train_data: list[Data]) -> tuple[C2NMap, float]:
         self.c2n_map = c2n_map
-        score = evaluate(self, train_data, save=False, remote=remote)
+        score = evaluate(self, train_data, save=False)
         return (c2n_map, score)
-
-    def evaluate_func(self, args: tuple[C2NMap, list[Data]]):
-        return self.evaluate_individual(*args)
 
     def evolve(
         self,
         train_dataset: list[Data],
         valid_dataset: list[Data],
         generations: int = 1000,
-        train_data_per_generation: int = 256,
+        train_data_per_generation: int = 128,
         early_stopping_count: int = 5,
-        parallel: bool = True,
     ) -> None:
         self.init_maps(train_dataset)
 
@@ -66,18 +61,8 @@ class GeneticDecipher(SearchDecipher):
             train_data = random.sample(train_dataset, train_data_per_generation)
 
             scores = []
-            if parallel:
-                with Pool(processes=cpu_count()) as pool:
-                    for result in tqdm(
-                        pool.imap_unordered(self.evaluate_func, [(c2n_map, train_data) for c2n_map in self.population]),
-                        total=len(self.population),
-                        desc="Evaluating population",
-                        leave=False,
-                    ):
-                        scores.append(result)
-            else:
-                for c2n_map in tqdm(self.population, desc="Evaluating population", leave=False):
-                    scores.append(self.evaluate_individual(c2n_map, train_data, remote=False))
+            for c2n_map in tqdm(self.population, desc="Evaluating population", leave=False):
+                scores.append(self.evaluate_individual(c2n_map, train_data))
 
             scores.sort(key=lambda x: x[1], reverse=True)
             best_population = [c2n_map for c2n_map, _ in scores[: self.elite_size]]
@@ -96,10 +81,12 @@ class GeneticDecipher(SearchDecipher):
                 map(self.__mutate, [self.__sex(map1, map2) for map1, map2 in itertools.product(best_population, repeat=2)])
             )
 
+            assert best_c2n_map
+
             tqdm.write(f"Geneartion {generation}")
             tqdm.write(f"Best train score: {scores[0][1]}")
             tqdm.write(f"Best score: {best_score}, Generation Best: {best_score_in_generation}")
-            tqdm.write(f"Best map: {best_c2n_map}")
+            tqdm.write(f"Best map: {best_c2n_map.c2n}")
 
             if non_evolvution_count > early_stopping_count:
                 print(f"No evolution for {early_stopping_count} generations, stopping")
@@ -117,6 +104,6 @@ if __name__ == "__main__":
     model = GeneticDecipher()
     model.obtain_words(dataset.train_dataset)
 
-    model.evolve(train_dataset=dataset.train_dataset, valid_dataset=dataset.valid_dataset, parallel=False)
+    model.evolve(train_dataset=dataset.train_dataset, valid_dataset=dataset.valid_dataset)
 
     evaluate(model, dataset.test_dataset)
