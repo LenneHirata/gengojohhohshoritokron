@@ -41,7 +41,7 @@ def evaluate(model: DecipherBase, dataset: list[Data]) -> None:
         f"Accuracy: {sum([output.correct_count for output in outputs]) / sum([output.length for output in outputs])}"
     )
 
-    pandas.DataFrame(outputs).to_csv(
+    pandas.DataFrame([output.model_dump() for output in outputs]).to_csv(
         Path(__file__).parent.parent
         / "outputs"
         / f"{datetime.now().strftime('%Y%m%d%H%M%S')}.csv",
